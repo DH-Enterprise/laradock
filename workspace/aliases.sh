@@ -71,6 +71,7 @@ alias rollback="php artisan migrate:rollback"
 alias seed="php artisan db:seed"
 alias serve="php artisan serve --quiet &"
 
+# TODO https://github.com/laradock/laradock/issues/105
 alias phpunit="./vendor/bin/phpunit"
 alias pu="phpunit"
 alias puf="phpunit --filter"
