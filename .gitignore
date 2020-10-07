@@ -12,4 +12,10 @@
 /nginx/ssl/*.key
 /nginx/ssl/*.csr
 
+/.devcontainer/*
+!/.devcontainer/devcontainer.example.json
+!/.devcontainer/docker-compose.extend-example.yml
+
+docker-compose.custom.yml
+
 .DS_Store
