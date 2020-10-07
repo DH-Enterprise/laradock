@@ -13,6 +13,8 @@ volumes:
     driver: ${VOLUMES_DRIVER}
   elasticsearch:
     driver: ${VOLUMES_DRIVER}
+  docker-in-docker:
+    driver: ${VOLUMES_DRIVER}
 
 services:
 
@@ -377,7 +379,7 @@ services:
     docker-in-docker:
       image: docker:19.03-dind
       environment:
-        DOCKER_TLS_SAN: DNS:docker-in-docker      
+        DOCKER_TLS_SAN: DNS:docker-in-docker
       privileged: true
       volumes:
         - ${APP_CODE_PATH_HOST}:${APP_CODE_PATH_CONTAINER}

@@ -4,12 +4,12 @@
 #--------------------------------------------------------------------------
 #
 
-ARG LARADOCK_PHP_VERSION
+ARG LARADOCK_PHP_VERSION=7.4
 FROM php:${LARADOCK_PHP_VERSION}-alpine
 
 LABEL maintainer="Mahmoud Zalt <mahmoud@zalt.me>"
 
-ARG LARADOCK_PHP_VERSION
+ARG LARADOCK_PHP_VERSION=7.4
 
 # If you're in China, or you need to change sources, will be set CHANGE_SOURCE to true in .env.
 
@@ -31,11 +31,7 @@ RUN apk --update add wget \
   autoconf \
   cyrus-sasl-dev \
   libgsasl-dev \
-  supervisor \
-  libxslt-dev
-
-RUN docker-php-ext-install mysqli mbstring pdo pdo_mysql tokenizer xml pcntl xsl
-RUN pecl channel-update pecl.php.net && pecl install memcached mcrypt-1.0.1 mongodb && docker-php-ext-enable memcached mongodb
+  libxslt-dev \
   oniguruma-dev \
   openssl \
   openssl-dev \
