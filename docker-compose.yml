@@ -235,10 +235,12 @@ services:
           aliases:
             - gvv.test
             - gvv-api.test
+            - orion.test
         backend:
           aliases:
             - gvv.test
             - gvv-api.test
+            - orion.test
 
 ### MariaDB ##############################################
     mariadb:
