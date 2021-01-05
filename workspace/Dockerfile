@@ -1511,6 +1511,9 @@ RUN if [ ${SHELL_OH_MY_ZSH} = true ]; then \
 
 USER root
 
+# Keep the last version of Composer
+RUN composer self-update --2
+
 #
 #--------------------------------------------------------------------------
 # Final Touch
