@@ -37,7 +37,7 @@ RUN apk --update add wget \
   openssl-dev \
   supervisor
 
-RUN docker-php-ext-install mysqli mbstring pdo pdo_mysql tokenizer xml pcntl
+RUN docker-php-ext-install mysqli mbstring pdo pdo_mysql tokenizer xml pcntl xsl
 RUN if [ $(php -r "echo PHP_MAJOR_VERSION;") = "5" ]; then \
   pecl channel-update pecl.php.net && pecl install memcached-2.2.0 mcrypt-1.0.1 mongodb && docker-php-ext-enable memcached mongodb \
 ;else \
