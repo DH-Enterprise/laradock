@@ -322,6 +322,7 @@ ENTRYPOINT ["/usr/bin/supervisord", "-n", "-c",  "/etc/supervisord.conf"]
 # If you need to modify this image, feel free to do it right here.
 #
     # -- Your awesome modifications go here -- #
+COPY ./laravel.ini /usr/local/etc/php/conf.d
 
 #
 #--------------------------------------------------------------------------
