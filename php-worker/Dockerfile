@@ -23,7 +23,6 @@ RUN apk --update add wget \
   curl \
   git \
   build-base \
-  libmemcached-dev \
   libmcrypt-dev \
   libxml2-dev \
   pcre-dev \
@@ -33,16 +32,12 @@ RUN apk --update add wget \
   libgsasl-dev \
   libxslt-dev \
   oniguruma-dev \
-  openssl \
-  openssl-dev \
+  libressl \
+  libressl-dev \
   supervisor
 
-RUN docker-php-ext-install mysqli mbstring pdo pdo_mysql tokenizer xml pcntl xsl
-RUN if [ $(php -r "echo PHP_MAJOR_VERSION;") = "5" ]; then \
-  pecl channel-update pecl.php.net && pecl install memcached-2.2.0 mcrypt-1.0.1 mongodb && docker-php-ext-enable memcached mongodb \
-;else \
-  pecl channel-update pecl.php.net && pecl install memcached mcrypt-1.0.1 mongodb && docker-php-ext-enable memcached mongodb \
-;fi
+RUN pecl channel-update pecl.php.net; \
+    docker-php-ext-install mysqli mbstring pdo pdo_mysql tokenizer xml pcntl
 
 # Add a non-root user:
 ARG PUID=1000
@@ -60,21 +55,69 @@ RUN if [ ${INSTALL_BZ2} = true ]; then \
   docker-php-ext-install bz2; \
 fi
 
+###########################################################################
+# PHP GnuPG:
+###########################################################################
+
+ARG INSTALL_GNUPG=false
+
+RUN set -eux; if [ ${INSTALL_GNUPG} = true ]; then \
+      apk add --no-cache --no-progress --virtual BUILD_DEPS_PHP_GNUPG gpgme-dev; \
+      apk add --no-cache --no-progress gpgme; \
+      if [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ]; then \
+        pecl install gnupg-1.5.0RC2; \
+      else \
+        pecl install gnupg; \
+      fi; \
+      docker-php-ext-enable gnupg; \
+    fi
+
+#Install LDAP
+ARG INSTALL_LDAP=false;
+RUN set -eux; if [ ${INSTALL_LDAP} = true ]; then \
+      apk add --no-cache --no-progress openldap-dev; \
+      docker-php-ext-install ldap; \
+      php -m | grep -oiE '^ldap$'; \
+    fi
+
 #Install GD package:
 ARG INSTALL_GD=false
 RUN if [ ${INSTALL_GD} = true ]; then \
-   apk add --update --no-cache freetype-dev libjpeg-turbo-dev jpeg-dev libpng-dev; \
-   docker-php-ext-configure gd --with-freetype-dir=/usr/lib/ --with-jpeg-dir=/usr/lib/ --with-png-dir=/usr/lib/ && \
-   docker-php-ext-install gd \
+    apk add --update --no-cache freetype-dev libjpeg-turbo-dev jpeg-dev libpng-dev; \
+    if [ $(php -r "echo PHP_MAJOR_VERSION;") = "7" ] && [ $(php -r "echo PHP_MINOR_VERSION;") = "4" ]; then \
+      docker-php-ext-configure gd --with-freetype --with-jpeg --with-png; \
+    else \
+      docker-php-ext-configure gd --with-freetype-dir=/usr/lib/ --with-jpeg-dir=/usr/lib/ --with-png-dir=/usr/lib/; \
+    fi; \
+    docker-php-ext-install gd \
 ;fi
 
 #Install ImageMagick:
 ARG INSTALL_IMAGEMAGICK=false
-RUN if [ ${INSTALL_IMAGEMAGICK} = true ]; then \
-  apk add --update imagemagick-dev imagemagick; \
-  pecl install imagick; \
-  docker-php-ext-enable imagick \
-;fi
+ARG IMAGEMAGICK_VERSION=latest
+ENV IMAGEMAGICK_VERSION ${IMAGEMAGICK_VERSION}
+RUN set -eux; \
+  if [ ${INSTALL_IMAGEMAGICK} = true ]; then \
+    apk add --update --no-cache imagemagick-dev imagemagick; \
+    if [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ]; then \
+      cd /tmp && \
+      if [ ${IMAGEMAGICK_VERSION} = "latest" ]; then \
+        git clone https://github.com/Imagick/imagick; \
+      else \
+        git clone --branch ${IMAGEMAGICK_VERSION} https://github.com/Imagick/imagick; \
+      fi && \
+      cd imagick && \
+      phpize && \
+      ./configure && \
+      make && \
+      make install && \
+      rm -r /tmp/imagick; \
+    else \
+      pecl install imagick; \
+    fi && \
+    docker-php-ext-enable imagick; \
+    php -m | grep -q 'imagick'; \
+  fi
 
 #Install GMP package:
 ARG INSTALL_GMP=false
@@ -83,17 +126,29 @@ RUN if [ ${INSTALL_GMP} = true ]; then \
    && docker-php-ext-install gmp \
 ;fi
 
+#Install BCMath package:
+ARG INSTALL_BCMATH=false
+RUN if [ ${INSTALL_BCMATH} = true ]; then \
+    docker-php-ext-install bcmath \
+;fi
+
 #Install SOAP package:
 ARG INSTALL_SOAP=false
 RUN if [ ${INSTALL_SOAP} = true ]; then \
     docker-php-ext-install soap \
 ;fi
 
-#Install BCMath package:
-ARG INSTALL_BCMATH=false
-RUN if [ ${INSTALL_BCMATH} = true ]; then \
-    docker-php-ext-install bcmath \
-;fi
+# Install MongoDB drivers:
+ARG INSTALL_MONGO=false
+RUN if [ ${INSTALL_MONGO} = true ]; then \
+      if [ $(php -r "echo PHP_MAJOR_VERSION;") = "5" ]; then \
+        pecl install mongo; \
+        docker-php-ext-enable mongo; \
+      else \
+        pecl install mongodb; \
+        docker-php-ext-enable mongodb; \
+      fi; \
+    fi
 
 ###########################################################################
 # PHP OCI8:
@@ -148,7 +203,7 @@ ARG INSTALL_ZIP_ARCHIVE=false
 RUN set -eux; \
   if [ ${INSTALL_ZIP_ARCHIVE} = true ]; then \
     apk --update add libzip-dev && \
-    if [ ${LARADOCK_PHP_VERSION} = "7.3" ] || [ ${LARADOCK_PHP_VERSION} = "7.4" ]; then \
+    if [ ${LARADOCK_PHP_VERSION} = "7.3" ] || [ ${LARADOCK_PHP_VERSION} = "7.4" ] || [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ]; then \
       docker-php-ext-configure zip; \
     else \
       docker-php-ext-configure zip --with-libzip; \
@@ -169,13 +224,44 @@ RUN if [ ${INSTALL_FFMPEG} = true ]; then \
     apk --update add ffmpeg \
 ;fi
 
+# Install BBC Audio Waveform Image Generator:
+ARG INSTALL_AUDIOWAVEFORM=false
+RUN if [ ${INSTALL_AUDIOWAVEFORM} = true ]; then \
+   apk add git make cmake gcc g++ libmad-dev libid3tag-dev libsndfile-dev gd-dev boost-dev libgd libpng-dev zlib-dev \
+   && apk add autoconf automake libtool gettext \
+   && wget https://github.com/xiph/flac/archive/1.3.3.tar.gz \
+   && tar xzf 1.3.3.tar.gz \
+   && cd flac-1.3.3 \
+   && ./autogen.sh \
+   && ./configure --enable-shared=no \
+   && make \
+   && make install \
+   && cd .. \
+   && git clone https://github.com/bbc/audiowaveform.git \
+   && cd audiowaveform \
+   && wget https://github.com/google/googletest/archive/release-1.10.0.tar.gz \
+   && tar xzf release-1.10.0.tar.gz \
+   && ln -s googletest-release-1.10.0/googletest googletest \
+   && ln -s googletest-release-1.10.0/googlemock googlemock \
+   && mkdir build \
+   && cd build \
+   && cmake .. \
+   && make \
+   && make install \
+;fi
+
 # Install AMQP:
 ARG INSTALL_AMQP=false
 
 RUN if [ ${INSTALL_AMQP} = true ]; then \
-    apk --update add rabbitmq-c rabbitmq-c-dev && \
-    pecl install amqp && \
+    apk --update add -q rabbitmq-c rabbitmq-c-dev && \
+    if [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ]; then \
+      printf "\n" | pecl install amqp-1.11.0beta; \
+    else \
+      printf "\n" | pecl install amqp; \
+    fi && \
     docker-php-ext-enable amqp && \
+    apk del -q rabbitmq-c-dev && \
     docker-php-ext-install sockets \
 ;fi
 
@@ -193,21 +279,24 @@ RUN if [ ${INSTALL_GEARMAN} = true ]; then \
 # Install Cassandra drivers:
 ARG INSTALL_CASSANDRA=false
 RUN if [ ${INSTALL_CASSANDRA} = true ]; then \
-  apk --update add cassandra-cpp-driver \
-  ;fi
-
-WORKDIR /usr/src
-RUN if [ ${INSTALL_CASSANDRA} = true ]; then \
-  git clone https://github.com/datastax/php-driver.git \
-  && cd php-driver/ext \
-  && phpize \
-  && mkdir -p /usr/src/php-driver/build \
-  && cd /usr/src/php-driver/build \
-  && ../ext/configure --with-php-config=/usr/bin/php-config7.1 > /dev/null \
-  && make clean >/dev/null \
-  && make >/dev/null 2>&1 \
-  && make install \
-  && docker-php-ext-enable cassandra \
+  if [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ]; then \
+    echo "PHP Driver for Cassandra is not supported for PHP 8.0."; \
+  else \
+    apk add --update --no-cache cassandra-cpp-driver libuv gmp \
+    && apk add --update --no-cache cassandra-cpp-driver-dev gmp-dev --virtual .build-sec \
+    && cd /usr/src \
+    && git clone https://github.com/datastax/php-driver.git \
+    && cd php-driver/ext \
+    && phpize \
+    && mkdir -p /usr/src/php-driver/build \
+    && cd /usr/src/php-driver/build \
+    && ../ext/configure > /dev/null \
+    && make clean > /dev/null \
+    && make > /dev/null 2>&1 \
+    && make install \
+    && docker-php-ext-enable cassandra \
+    && apk del .build-sec; \
+  fi \
 ;fi
 
 # Install Phalcon ext
@@ -240,9 +329,13 @@ RUN if [ $INSTALL_GHOSTSCRIPT = true ]; then \
 ARG INSTALL_REDIS=false
 RUN if [ ${INSTALL_REDIS} = true ]; then \
     # Install Redis Extension
-    printf "\n" | pecl install -o -f redis \
-    &&  rm -rf /tmp/pear \
-    &&  docker-php-ext-enable redis \
+    if [ $(php -r "echo PHP_MAJOR_VERSION;") = "5" ]; then \
+      printf "\n" | pecl install -o -f redis-4.3.0; \
+    else \
+      printf "\n" | pecl install -o -f redis; \
+    fi; \
+    rm -rf /tmp/pear; \
+    docker-php-ext-enable redis \
 ;fi
 
 ###########################################################################
@@ -253,16 +346,17 @@ ARG INSTALL_SWOOLE=false
 
 RUN if [ ${INSTALL_SWOOLE} = true ]; then \
     # Install Php Swoole Extension
-    if [ $(php -r "echo PHP_MAJOR_VERSION;") = "5" ]; then \
-      pecl -q install swoole-2.0.10; \
+    if   [ $(php -r "echo PHP_VERSION_ID - PHP_RELEASE_VERSION;") = "50600" ]; then \
+      echo '' | pecl -q install swoole-2.0.10; \
+    elif [ $(php -r "echo PHP_VERSION_ID - PHP_RELEASE_VERSION;") = "70000" ]; then \
+      echo '' | pecl -q install swoole-4.3.5; \
+    elif [ $(php -r "echo PHP_VERSION_ID - PHP_RELEASE_VERSION;") = "70100" ]; then \
+      echo '' | pecl -q install swoole-4.5.11; \
     else \
-      if [ $(php -r "echo PHP_MINOR_VERSION;") = "0" ]; then \
-        pecl install swoole-2.2.0; \
-      else \
-        pecl install swoole; \
-      fi \
-    fi \
-    && docker-php-ext-enable swoole \
+      echo '' | pecl -q install swoole; \
+    fi; \
+    docker-php-ext-enable swoole \
+    && php -m | grep -q 'swoole' \
 ;fi
 
 ###########################################################################
@@ -275,8 +369,11 @@ RUN if [ ${INSTALL_TAINT} = true ]; then \
     # Install Php TAINT Extension
     if [ $(php -r "echo PHP_MAJOR_VERSION;") = "7" ]; then \
       pecl install taint; \
-    fi && \
-    docker-php-ext-enable taint \
+      docker-php-ext-enable taint; \
+      php -m | grep -q 'taint'; \
+    else \
+      echo 'taint not Support'; \
+    fi \
 ;fi
 
 ###########################################################################
@@ -286,7 +383,7 @@ RUN if [ ${INSTALL_TAINT} = true ]; then \
 ARG INSTALL_IMAP=false
 
 RUN if [ ${INSTALL_IMAP} = true ]; then \
-    apk add --update imap-dev openssl-dev && \
+    apk add --update imap-dev && \
     docker-php-ext-configure imap --with-imap --with-imap-ssl && \
     docker-php-ext-install imap \
 ;fi
@@ -298,7 +395,58 @@ RUN if [ ${INSTALL_IMAP} = true ]; then \
 ARG INSTALL_XMLRPC=false
 
 RUN if [ ${INSTALL_XMLRPC} = true ]; then \
-    docker-php-ext-install xmlrpc \
+      if [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ]; then \
+        pecl install xmlrpc-1.0.0RC2; \
+        docker-php-ext-enable xmlrpc; \
+      else \
+        docker-php-ext-install xmlrpc; \
+      fi; \
+      php -m | grep -r 'xmlrpc'; \
+    fi
+
+###########################################################################
+# PHP Memcached:
+###########################################################################
+
+ARG INSTALL_MEMCACHED=false
+
+RUN if [ ${INSTALL_MEMCACHED} = true ]; then \
+  apk --update add libmemcached-dev; \
+  # Install the php memcached extension
+  if [ $(php -r "echo PHP_MAJOR_VERSION;") = "5" ]; then \
+    pecl install memcached-2.2.0; \
+  else \
+    pecl install memcached; \
+  fi; \
+  docker-php-ext-enable memcached; \
+  php -m | grep -r 'memcached'; \
+fi
+
+###########################################################################
+# PHP SSDB:
+###########################################################################
+
+USER root
+
+ARG INSTALL_SSDB=false
+
+RUN set -xe; \
+    if [ ${INSTALL_SSDB} = true ] && [ $(php -r "echo PHP_MAJOR_VERSION;") != "8" ]; then \
+    apk --update add sudo wget && \
+    if [ $(php -r "echo PHP_MAJOR_VERSION;") = "7" ]; then \
+      curl -L -o /tmp/ssdb-client-php.tar.gz https://github.com/jonnywang/phpssdb/archive/php7.tar.gz; \
+    else \
+      curl -L -o /tmp/ssdb-client-php.tar.gz https://github.com/jonnywang/phpssdb/archive/master.tar.gz; \
+    fi \
+    && mkdir -p /tmp/ssdb-client-php \
+    && tar -C /tmp/ssdb-client-php -zxvf /tmp/ssdb-client-php.tar.gz --strip 1 \
+    && cd /tmp/ssdb-client-php \
+    && phpize \
+    && ./configure \
+    && make \
+    && make install \
+    && rm /tmp/ssdb-client-php.tar.gz \
+    && docker-php-ext-enable ssdb \
 ;fi
 
 #
