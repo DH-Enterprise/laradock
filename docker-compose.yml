@@ -6,49 +6,11 @@ networks:
   backend:
     driver: ${NETWORKS_DRIVER}
 volumes:
-  mysql:
-    driver: ${VOLUMES_DRIVER}
-  percona:
-    driver: ${VOLUMES_DRIVER}
-  mssql:
-    driver: ${VOLUMES_DRIVER}
-  postgres:
-    driver: ${VOLUMES_DRIVER}
-  memcached:
-    driver: ${VOLUMES_DRIVER}
   redis:
-    driver: ${VOLUMES_DRIVER}
-  neo4j:
     driver: ${VOLUMES_DRIVER}
   mariadb:
     driver: ${VOLUMES_DRIVER}
-  mongo:
-    driver: ${VOLUMES_DRIVER}
-  minio:
-    driver: ${VOLUMES_DRIVER}
-  rethinkdb:
-    driver: ${VOLUMES_DRIVER}
-  phpmyadmin:
-    driver: ${VOLUMES_DRIVER}
-  adminer:
-    driver: ${VOLUMES_DRIVER}
-  aerospike:
-    driver: ${VOLUMES_DRIVER}
-  caddy:
-    driver: ${VOLUMES_DRIVER}
-  meilisearch:
-    driver: ${VOLUMES_DRIVER}
   elasticsearch:
-    driver: ${VOLUMES_DRIVER}
-  mosquitto:
-    driver: ${VOLUMES_DRIVER}
-  confluence:
-    driver: ${VOLUMES_DRIVER}
-  sonarqube:
-    driver: ${VOLUMES_DRIVER}
-  cassandra:
-    driver: ${VOLUMES_DRIVER}
-  graylog:
     driver: ${VOLUMES_DRIVER}
   docker-in-docker:
     driver: ${VOLUMES_DRIVER}
@@ -350,6 +312,7 @@ services:
         - "dockerhost:${DOCKER_HOST_IP}"
       networks:
         - backend
+
 ### Laravel Horizon ############################################
     laravel-horizon:
       build:
@@ -410,8 +373,16 @@ services:
       depends_on:
         - php-fpm
       networks:
-        - frontend
-        - backend
+        frontend:
+          aliases:
+            - gvv.test
+            - gvv-api.test
+            - orion.test
+        backend:
+          aliases:
+            - gvv.test
+            - gvv-api.test
+            - orion.test
 
 ### OpenResty Server #########################################
     openresty:
@@ -566,7 +537,7 @@ services:
           - no_proxy
           - MARIADB_VERSION=${MARIADB_VERSION}
       volumes:
-        - ${DATA_PATH_HOST}/mariadb:/var/lib/mysql
+        - ${DATA_PATH_HOST}/mariadb1:/var/lib/mysql
         - ${MARIADB_ENTRYPOINT_INITDB}:/docker-entrypoint-initdb.d
       ports:
         - "${MARIADB_PORT}:3306"
@@ -578,6 +549,7 @@ services:
         - MYSQL_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}
       networks:
         - backend
+
 
 ### PostgreSQL ###########################################
     postgres:
@@ -711,6 +683,7 @@ services:
         - "${REDIS_PORT}:6379"
       networks:
         - backend
+
 
 ### Redis Cluster ##########################################
     redis-cluster:
@@ -996,11 +969,11 @@ services:
       volumes:
         - elasticsearch:/usr/share/elasticsearch/data
       environment:
-        - cluster.name=laradock-cluster
         - node.name=laradock-node
+        - cluster.name=gvv-cluster
+        - cluster.initial_master_nodes=laradock-node
         - bootstrap.memory_lock=true
         - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-        - cluster.initial_master_nodes=laradock-node
       ulimits:
         memlock:
           soft: -1
@@ -1017,23 +990,18 @@ services:
         - frontend
         - backend
 
-### Logstash ##############################################
-    logstash:
-      build:
-        context: ./logstash
-        args:
-          - ELK_VERSION=${ELK_VERSION}
-      volumes:
-        - './logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml'
-        - './logstash/pipeline:/usr/share/logstash/pipeline'
-      ports:
-        - '5001:5001'
+### Docker-in-Docker ################################################
+    docker-in-docker:
+      image: docker:19.03-dind
       environment:
-        LS_JAVA_OPTS: '-Xmx1g -Xms1g'
-      env_file:
-        - .env
+        DOCKER_TLS_SAN: DNS:docker-in-docker
+      privileged: true
+      volumes:
+        - ${APP_CODE_PATH_HOST}:${APP_CODE_PATH_CONTAINER}
+        - docker-in-docker:/certs/client
+      expose:
+        - 2375
       networks:
-        - frontend
         - backend
       depends_on:
         - elasticsearch

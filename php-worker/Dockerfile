@@ -4,12 +4,12 @@
 #--------------------------------------------------------------------------
 #
 
-ARG LARADOCK_PHP_VERSION
+ARG LARADOCK_PHP_VERSION=7.4
 FROM php:${LARADOCK_PHP_VERSION}-alpine
 
 LABEL maintainer="Mahmoud Zalt <mahmoud@zalt.me>"
 
-ARG LARADOCK_PHP_VERSION
+ARG LARADOCK_PHP_VERSION=7.4
 
 # If you're in China, or you need to change sources, will be set CHANGE_SOURCE to true in .env.
 
@@ -30,11 +30,11 @@ RUN apk --update add wget \
   autoconf \
   cyrus-sasl-dev \
   libgsasl-dev \
+  libxslt-dev \
   oniguruma-dev \
   libressl \
   libressl-dev \
   supervisor
-
 
 RUN pecl channel-update pecl.php.net; \
     docker-php-ext-install mysqli mbstring pdo pdo_mysql tokenizer xml pcntl
@@ -470,6 +470,7 @@ ENTRYPOINT ["/usr/bin/supervisord", "-n", "-c",  "/etc/supervisord.conf"]
 # If you need to modify this image, feel free to do it right here.
 #
     # -- Your awesome modifications go here -- #
+COPY ./laravel.ini /usr/local/etc/php/conf.d
 
 #
 #--------------------------------------------------------------------------
