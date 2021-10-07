@@ -5,8 +5,9 @@
 #
 
 ARG LARADOCK_PHP_VERSION=7.4
-FROM php:${LARADOCK_PHP_VERSION}-alpine
-
+# 3.13 because otherwise getting #8 9.687 make: *** [Makefile:192: mysqli.lo] Error 127
+# https://github.com/docker-library/php/issues/1130#issuecomment-782831134
+FROM php:${LARADOCK_PHP_VERSION}-alpine3.13
 LABEL maintainer="Mahmoud Zalt <mahmoud@zalt.me>"
 
 ARG LARADOCK_PHP_VERSION=7.4
