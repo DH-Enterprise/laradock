@@ -16,9 +16,9 @@ ARG LARADOCK_PHP_VERSION=7.4
 
 ARG CHANGE_SOURCE=false
 RUN if [ ${CHANGE_SOURCE} = true ]; then \
-    # Change application source from dl-cdn.alpinelinux.org to aliyun source
-    sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/' /etc/apk/repositories \
-;fi
+  # Change application source from dl-cdn.alpinelinux.org to aliyun source
+  sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/' /etc/apk/repositories \
+  ;fi
 
 RUN apk --update add wget \
   curl \
@@ -26,6 +26,7 @@ RUN apk --update add wget \
   build-base \
   libmcrypt-dev \
   libxml2-dev \
+  linux-headers \
   pcre-dev \
   zlib-dev \
   autoconf \
@@ -38,7 +39,7 @@ RUN apk --update add wget \
   supervisor
 
 RUN pecl channel-update pecl.php.net; \
-    docker-php-ext-install mysqli mbstring pdo pdo_mysql tokenizer xml pcntl
+  docker-php-ext-install mysqli mbstring pdo pdo_mysql tokenizer xml pcntl
 
 # Add a non-root user:
 ARG PUID=1000
@@ -47,14 +48,14 @@ ARG PGID=1000
 ENV PGID ${PGID}
 
 RUN addgroup -g ${PGID} laradock && \
-    adduser -D -G laradock -u ${PUID} laradock
+  adduser -D -G laradock -u ${PUID} laradock
 
 #Install BZ2:
 ARG INSTALL_BZ2=false
 RUN if [ ${INSTALL_BZ2} = true ]; then \
   apk --update add bzip2-dev; \
   docker-php-ext-install bz2; \
-fi
+  fi
 
 ###########################################################################
 # PHP GnuPG:
@@ -424,6 +425,37 @@ RUN if [ ${INSTALL_MEMCACHED} = true ]; then \
 fi
 
 ###########################################################################
+# SQL SERVER:
+###########################################################################
+
+ARG INSTALL_MSSQL=false
+
+RUN set -eux; \
+  if [ ${INSTALL_MSSQL} = true ]; then \
+  apk add --update gnupg \
+  ###########################################################################
+  # Ref from:
+  # - https://docs.microsoft.com/en-us/sql/connect/odbc/linux-mac/installing-the-microsoft-odbc-driver-for-sql-server?view=sql-server-ver15#alpine17
+  ###########################################################################
+  # Add Microsoft repo for Microsoft ODBC Driver 17 for Linux
+  # Driver version 17.5 or higher is required for Alpine support.
+  # Download the desired package(s)
+  && curl -O https://download.microsoft.com/download/e/4/e/e4e67866-dffd-428c-aac7-8d28ddafb39b/msodbcsql17_17.8.1.1-1_amd64.apk \
+  # Verify signature, if 'gpg' is missing install it using 'apk add gnupg':
+  && curl -O https://download.microsoft.com/download/e/4/e/e4e67866-dffd-428c-aac7-8d28ddafb39b/msodbcsql17_17.8.1.1-1_amd64.sig \
+  && curl https://packages.microsoft.com/keys/microsoft.asc  | gpg --import - \
+  && gpg --verify msodbcsql17_17.8.1.1-1_amd64.sig msodbcsql17_17.8.1.1-1_amd64.apk \
+  # Install the package(s)
+  && apk add --allow-untrusted msodbcsql17_17.8.1.1-1_amd64.apk unixodbc-dev \
+  && pecl install sqlsrv pdo_sqlsrv \
+  # && echo extension=pdo_sqlsrv.so >> `php --ini | grep "Scan for additional .ini files" | sed -e "s|.*:\s*||"`/10_pdo_sqlsrv.ini
+  # && echo extension=sqlsrv.so >> `php --ini | grep "Scan for additional .ini files" | sed -e "s|.*:\s*||"`/00_sqlsrv.ini
+  && docker-php-ext-enable pdo_sqlsrv sqlsrv \
+  && php -m | grep -q 'pdo_sqlsrv' \
+  && php -m | grep -q 'sqlsrv' \
+  ;fi
+
+###########################################################################
 # PHP SSDB:
 ###########################################################################
 
@@ -489,6 +521,6 @@ RUN php -v | head -n 1 | grep -q "PHP ${PHP_VERSION}."
 
 # Clean up
 RUN rm /var/cache/apk/* \
-    && mkdir -p /var/www
+  && mkdir -p /var/www
 
 WORKDIR /etc/supervisor/conf.d/
