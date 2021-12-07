@@ -455,6 +455,10 @@ RUN set -eux; \
   && php -m | grep -q 'sqlsrv' \
   ;fi
 
+# Install the xsl extension (XXX For Amadeus SOAP calls in worker)
+RUN apk add libxslt-dev && \
+  docker-php-ext-install xsl
+
 ###########################################################################
 # PHP SSDB:
 ###########################################################################
