@@ -1513,20 +1513,6 @@ services:
       extra_hosts:
         - "laradock-ipython:${LARADOCK_IPYTHON_CONTROLLER_IP}"
 
-### Docker-in-Docker ################################################
-    docker-in-docker:
-      image: docker:19.03-dind
-      environment:
-        DOCKER_TLS_SAN: DNS:docker-in-docker
-      privileged: true
-      volumes:
-        - ${APP_CODE_PATH_HOST}:${APP_CODE_PATH_CONTAINER}
-        - docker-in-docker:/certs/client
-      expose:
-        - 2375
-      networks:
-        - backend
-
 ### NetData ################################################
     netdata:
       image: netdata/netdata:latest
