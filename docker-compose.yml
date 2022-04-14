@@ -1049,8 +1049,6 @@ services:
         - 2375
       networks:
         - backend
-      depends_on:
-        - elasticsearch
 
 ### Kibana ##############################################
     kibana:
