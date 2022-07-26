@@ -12,9 +12,9 @@
 # Note: Base Image name format {image-tag}-{php-version}
 #
 
-ARG LARADOCK_PHP_VERSION=7.4
+ARG LARADOCK_PHP_VERSION=8.0
 ARG BASE_IMAGE_TAG_PREFIX=latest
-FROM laradock/php-fpm:${BASE_IMAGE_TAG_PREFIX}-7.4
+FROM laradock/php-fpm:${BASE_IMAGE_TAG_PREFIX}-8.0
 
 LABEL maintainer="Mahmoud Zalt <mahmoud@zalt.me>"
 
