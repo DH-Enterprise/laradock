@@ -728,6 +728,10 @@ RUN set -eux; \
       && curl https://packages.microsoft.com/config/debian/$(lsb_release -rs)/prod.list > /etc/apt/sources.list.d/mssql-release.list \
       && apt-get update -yqq \
       && ACCEPT_EULA=Y apt-get install -yqq unixodbc unixodbc-dev libgss3 odbcinst msodbcsql17 locales \
+      # Fix "Unable to locate package msodbcsql17"
+      # && curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list > /etc/apt/sources.list.d/mssql-release.list \
+      # && apt-get update -yqq \
+      # ACCEPT_EULA=Y apt-get install -yqq msodbcsql18 mssql-tools18 unixodbc unixodbc-dev libgss3 odbcinst locales && \
       && echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
       && ln -sfn /etc/locale.alias /usr/share/locale/locale.alias \
       && locale-gen \
@@ -1036,6 +1040,9 @@ RUN if [ ${INSTALL_WKHTMLTOPDF} = true ]; then \
       wget \
     && wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.stretch_amd64.deb \
     && dpkg -i wkhtmltox_0.12.6-1.stretch_amd64.deb \
+    # Fix "package architecture (arm64) does not match system (amd64)" \
+    # wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.stretch_arm64.deb \
+    # dpkg -i wkhtmltox_0.12.6-1.stretch_arm64.deb \
     && apt -f install \
 ;fi
 
