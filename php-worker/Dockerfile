@@ -39,7 +39,12 @@ RUN apk --update add wget \
   supervisor
 
 RUN pecl channel-update pecl.php.net; \
-  docker-php-ext-install mysqli mbstring pdo pdo_mysql tokenizer xml pcntl
+  docker-php-ext-install mysqli mbstring pdo pdo_mysql xml pcntl; \
+  if [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ] && [ $(php -r "echo PHP_MINOR_VERSION;") = "1" ]; then \
+    php -m | grep -q 'tokenizer'; \
+  else \
+    docker-php-ext-install tokenizer; \
+  fi
 
 # Add a non-root user:
 ARG PUID=1000
@@ -64,15 +69,11 @@ RUN if [ ${INSTALL_BZ2} = true ]; then \
 ARG INSTALL_GNUPG=false
 
 RUN set -eux; if [ ${INSTALL_GNUPG} = true ]; then \
-      apk add --no-cache --no-progress --virtual BUILD_DEPS_PHP_GNUPG gpgme-dev; \
-      apk add --no-cache --no-progress gpgme; \
-      if [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ]; then \
-        pecl install gnupg-1.5.0RC2; \
-      else \
-        pecl install gnupg; \
-      fi; \
-      docker-php-ext-enable gnupg; \
-    fi
+  apk add --no-cache --no-progress --virtual BUILD_DEPS_PHP_GNUPG gpgme-dev; \
+  apk add --no-cache --no-progress gpgme; \
+  pecl install gnupg; \
+  docker-php-ext-enable gnupg; \
+  fi
 
 #Install LDAP
 ARG INSTALL_LDAP=false;
@@ -85,14 +86,14 @@ RUN set -eux; if [ ${INSTALL_LDAP} = true ]; then \
 #Install GD package:
 ARG INSTALL_GD=false
 RUN if [ ${INSTALL_GD} = true ]; then \
-    apk add --update --no-cache freetype-dev libjpeg-turbo-dev jpeg-dev libpng-dev; \
-    if [ $(php -r "echo PHP_MAJOR_VERSION;") = "7" ] && [ $(php -r "echo PHP_MINOR_VERSION;") = "4" ]; then \
-      docker-php-ext-configure gd --with-freetype --with-jpeg --with-png; \
-    else \
-      docker-php-ext-configure gd --with-freetype-dir=/usr/lib/ --with-jpeg-dir=/usr/lib/ --with-png-dir=/usr/lib/; \
-    fi; \
-    docker-php-ext-install gd \
-;fi
+  apk add --update --no-cache freetype-dev libjpeg-turbo-dev jpeg-dev libpng-dev; \
+  if [ $(php -r "echo PHP_MAJOR_VERSION;") = "7" ] && [ $(php -r "echo PHP_MINOR_VERSION;") = "4" ]; then \
+  docker-php-ext-configure gd --with-freetype --with-jpeg; \
+  else \
+  docker-php-ext-configure gd --with-freetype-dir=/usr/lib/ --with-jpeg-dir=/usr/lib/ --with-png-dir=/usr/lib/; \
+  fi; \
+  docker-php-ext-install gd \
+  ;fi
 
 #Install ImageMagick:
 ARG INSTALL_IMAGEMAGICK=false
@@ -143,9 +144,13 @@ RUN if [ ${INSTALL_SOAP} = true ]; then \
 # Install MongoDB drivers:
 ARG INSTALL_MONGO=false
 RUN if [ ${INSTALL_MONGO} = true ]; then \
-      if [ $(php -r "echo PHP_MAJOR_VERSION;") = "5" ]; then \
-        pecl install mongo; \
-        docker-php-ext-enable mongo; \
+    if [ $(php -r "echo PHP_MAJOR_VERSION;") = "5" ]; then \
+      pecl install mongo; \
+      docker-php-ext-enable mongo; \
+      php -m | grep -oiE '^mongo$'; \
+    else \
+      if [ $(php -r "echo PHP_MAJOR_VERSION;") = "7" ] && { [ $(php -r "echo PHP_MINOR_VERSION;") = "0" ] || [ $(php -r "echo PHP_MINOR_VERSION;") = "1" ] ;}; then \
+        pecl install mongodb-1.9.2; \
       else \
         pecl install mongodb; \
         docker-php-ext-enable mongodb; \
@@ -256,16 +261,17 @@ RUN if [ ${INSTALL_AUDIOWAVEFORM} = true ]; then \
 ARG INSTALL_AMQP=false
 
 RUN if [ ${INSTALL_AMQP} = true ]; then \
-    apk --update add -q rabbitmq-c rabbitmq-c-dev && \
-    if [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ]; then \
-      printf "\n" | pecl install amqp-1.11.0beta; \
-    else \
-      printf "\n" | pecl install amqp; \
-    fi && \
+  docker-php-ext-install sockets; \
+  apk --update add -q rabbitmq-c rabbitmq-c-dev && \
+  if [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ]; then \
+    printf "\n" | pecl install amqp-1.11.0; \
+  else \
+    printf "\n" | pecl install amqp; \
+  fi && \
     docker-php-ext-enable amqp && \
-    apk del -q rabbitmq-c-dev && \
-    docker-php-ext-install sockets \
-;fi
+    apk del -q rabbitmq-c-dev; \
+    php -m | grep -oiE '^amqp$' \
+  ;fi
 
 # Install Gearman:
 ARG INSTALL_GEARMAN=false
@@ -362,6 +368,24 @@ RUN if [ ${INSTALL_SWOOLE} = true ]; then \
 ;fi
 
 ###########################################################################
+# xlswriter:
+###########################################################################
+
+ARG INSTALL_XLSWRITER=false
+
+RUN set -eux; \
+    if [ ${INSTALL_XLSWRITER} = true ]; then \
+      # Install Php xlswriter Extension \
+      if   [ $(php -r "echo PHP_MAJOR_VERSION;") != "5" ]; then \
+          pecl install xlswriter && \
+          docker-php-ext-enable xlswriter && \
+          php -m | grep -q 'xlswriter'; \
+      else \
+          echo "PHP Extension for xlswriter is not supported for PHP 5.0"; \
+      fi \
+    ;fi
+
+###########################################################################
 # Taint EXTENSION
 ###########################################################################
 
@@ -397,14 +421,14 @@ RUN if [ ${INSTALL_IMAP} = true ]; then \
 ARG INSTALL_XMLRPC=false
 
 RUN if [ ${INSTALL_XMLRPC} = true ]; then \
-      if [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ]; then \
-        pecl install xmlrpc-1.0.0RC2; \
-        docker-php-ext-enable xmlrpc; \
-      else \
-        docker-php-ext-install xmlrpc; \
-      fi; \
-      php -m | grep -r 'xmlrpc'; \
-    fi
+  if [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ]; then \
+  pecl install xmlrpc-1.0.0RC3; \
+  docker-php-ext-enable xmlrpc; \
+  else \
+  docker-php-ext-install xmlrpc; \
+  fi; \
+  php -m | grep -r 'xmlrpc'; \
+  fi
 
 ###########################################################################
 # PHP Memcached:
@@ -492,6 +516,38 @@ RUN docker-php-ext-install iconv
 # https://github.com/DH-Enterprise/orion-bridge/commit/c123e509f9feb2c5473ecab665bc71570ac86e66#diff-a023c128fb1812aec6a748219fd0dab49cf85b3c48115da62b97299098c6a7f7R265
 RUN apk add --no-cache gnu-libiconv
 ENV LD_PRELOAD /usr/lib/preloadable_libiconv.so
+
+
+############################################################################
+## Event:
+############################################################################
+USER root
+
+ARG INSTALL_EVENT=false
+
+RUN set -eux; \
+  if [ ${INSTALL_EVENT} = true ]; then \
+      curl -L -o  /tmp/libevent.tar.gz https://github.com/libevent/libevent/releases/download/release-2.1.12-stable/libevent-2.1.12-stable.tar.gz   &&\
+      mkdir -p /tmp/libevent-php &&\
+      tar -C /tmp/libevent-php -zxvf /tmp/libevent.tar.gz --strip 1 &&\
+      cd /tmp/libevent-php &&\
+      ./configure --prefix=/usr/local/libevent-2.1.12  &&\
+      make &&\
+      make install &&\
+      rm /tmp/libevent.tar.gz &&\
+      docker-php-ext-install sockets  &&\
+      curl -L -o /tmp/event.tar.gz http://pecl.php.net/get/event-3.0.6.tgz &&\
+      mkdir -p /tmp/event-php &&\
+      tar -C /tmp/event-php -zxvf /tmp/event.tar.gz --strip 1 &&\
+      cd /tmp/event-php &&\
+      phpize &&\
+      ./configure  --with-event-libevent-dir=/usr/local/libevent-2.1.12/ &&\
+      make &&\
+      make install &&\
+      rm /tmp/event.tar.gz &&\
+      docker-php-ext-enable event &&\
+      php -m  | grep -q 'event' \
+;fi
 
 #
 #--------------------------------------------------------------------------
