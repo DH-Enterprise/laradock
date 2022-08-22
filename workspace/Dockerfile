@@ -1558,6 +1558,11 @@ RUN if [ ${INSTALL_PROTOC} = true ]; then \
 # Install fontcustom (for `npm run font` task)
 ###########################################################################
 
+# 3 lines below are needed to be able to install fontforge on ubuntu 20.04
+RUN apt-get install software-properties-common;
+RUN add-apt-repository --remove ppa:fontforge/fontforge;
+RUN apt-get update;
+
 RUN apt-get install -y ruby-dev zlib1g-dev fontforge && \
     git clone https://github.com/bramstein/sfnt2woff-zopfli.git sfnt2woff-zopfli && \
     cd sfnt2woff-zopfli && make && mv sfnt2woff-zopfli /usr/local/bin/sfnt2woff && \
