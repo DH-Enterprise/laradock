@@ -153,9 +153,11 @@ RUN if [ ${INSTALL_MONGO} = true ]; then \
         pecl install mongodb-1.9.2; \
       else \
         pecl install mongodb; \
-        docker-php-ext-enable mongodb; \
       fi; \
-    fi
+      docker-php-ext-enable mongodb; \
+      php -m | grep -oiE '^mongodb$'; \
+    fi; \
+  fi
 
 ###########################################################################
 # PHP OCI8:

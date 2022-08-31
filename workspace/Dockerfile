@@ -282,6 +282,7 @@ RUN set -eux; \
     ###########################################################################
     if [ ${INSTALL_SOAP} = true ]; then \
       # Install the PHP SOAP extension
+      add-apt-repository ppa:ondrej/php; \
       apt-get -yqq install libxml2-dev php${LARADOCK_PHP_VERSION}-soap; \
     fi; \
     ###########################################################################
