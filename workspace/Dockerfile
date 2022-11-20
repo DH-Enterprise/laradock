@@ -1459,8 +1459,8 @@ RUN if [ ${INSTALL_WKHTMLTOPDF} = true ]; then \
    xfonts-75dpi \
    wget \
    # Fix "package architecture (arm64) does not match system (amd64)" \
-   # wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.bionic_arm64.deb \
-   # dpkg -i wkhtmltox_0.12.6-1.bionic_arm64.deb \
+   # && wget "https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.bionic_arm64.deb" \
+   # && dpkg -i "wkhtmltox_0.12.6-1.bionic_arm64.deb" \
    && wget "https://github.com/wkhtmltopdf/packaging/releases/download/${WKHTMLTOPDF_VERSION}/wkhtmltox_0.12.6-1.bionic_${ARCH}.deb" \
    && dpkg -i "wkhtmltox_${WKHTMLTOPDF_VERSION}.bionic_${ARCH}.deb" \
    && apt -f install \
