@@ -105,9 +105,6 @@ USER root
 COPY ./aliases.sh /root/aliases.sh
 COPY ./aliases.sh /home/laradock/aliases.sh
 
-# denis: allow to open `mysql gvv` (w/o specifying host, user, password)
-COPY ./.my.cnf /home/laradock
-
 RUN sed -i 's/\r//' /root/aliases.sh && \
     sed -i 's/\r//' /home/laradock/aliases.sh && \
     chown laradock:laradock /home/laradock/aliases.sh && \
@@ -1830,3 +1827,11 @@ CipherString = DEFAULT@SECLEVEL=1' >> /etc/ssl/openssl.cnf
 
 # Set default work directory
 WORKDIR /var/www
+
+###########################################################################
+# DH customizations
+###########################################################################
+
+# denis: allow to open `mysql gvv` (w/o specifying host, user, password)
+COPY ./.my.cnf /home/laradock/
+COPY .gitconfig /home/laradock/

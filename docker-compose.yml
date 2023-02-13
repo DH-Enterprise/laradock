@@ -442,11 +442,21 @@ services:
         frontend:
           aliases:
             - gvv.test
+            - gvv-ca.test
+            - gvh.test
+            - sceptre.test
+            - aer.test
+            - ct.test
             - gvv-api.test
             - orion.test
         backend:
           aliases:
             - gvv.test
+            - gvv-ca.test
+            - gvh.test
+            - sceptre.test
+            - aer.test
+            - ct.test
             - gvv-api.test
             - orion.test
 
