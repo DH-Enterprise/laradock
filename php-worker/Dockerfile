@@ -466,7 +466,17 @@ RUN set -eux; \
   && gpg --verify msodbcsql17_17.8.1.1-1_amd64.sig msodbcsql17_17.8.1.1-1_amd64.apk \
   # Install the package(s)
   && apk add --allow-untrusted msodbcsql17_17.8.1.1-1_amd64.apk unixodbc-dev \
-  && pecl install sqlsrv pdo_sqlsrv \
+  && if [ $(php -r "echo PHP_VERSION_ID - PHP_RELEASE_VERSION;") = "70000" ]; then \
+    pecl install pdo_sqlsrv-5.3.0 sqlsrv-5.3.0 \
+  ;elif [ $(php -r "echo PHP_VERSION_ID - PHP_RELEASE_VERSION;") = "70100" ]; then \
+    pecl install pdo_sqlsrv-5.6.1 sqlsrv-5.6.1 \
+  ;elif [ $(php -r "echo PHP_VERSION_ID - PHP_RELEASE_VERSION;") = "70200" ]; then \
+    pecl install pdo_sqlsrv-5.8.1 sqlsrv-5.8.1 \
+  ;elif [ $(php -r "echo PHP_VERSION_ID - PHP_RELEASE_VERSION;") = "70400" ]; then \
+    pecl install pdo_sqlsrv-5.10.1 sqlsrv-5.10.1 \
+  ;else \
+    pecl install pdo_sqlsrv sqlsrv \
+  ;fi \
   # && echo extension=pdo_sqlsrv.so >> `php --ini | grep "Scan for additional .ini files" | sed -e "s|.*:\s*||"`/10_pdo_sqlsrv.ini
   # && echo extension=sqlsrv.so >> `php --ini | grep "Scan for additional .ini files" | sed -e "s|.*:\s*||"`/00_sqlsrv.ini
   && docker-php-ext-enable pdo_sqlsrv sqlsrv \
