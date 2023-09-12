@@ -4,13 +4,13 @@
 #--------------------------------------------------------------------------
 #
 
-ARG LARADOCK_PHP_VERSION=7.4
+ARG LARADOCK_PHP_VERSION
 # 3.13 because otherwise getting #8 9.687 make: *** [Makefile:192: mysqli.lo] Error 127
 # https://github.com/docker-library/php/issues/1130#issuecomment-782831134
 FROM php:${LARADOCK_PHP_VERSION}-alpine3.13
 LABEL maintainer="Mahmoud Zalt <mahmoud@zalt.me>"
 
-ARG LARADOCK_PHP_VERSION=7.4
+ARG LARADOCK_PHP_VERSION
 
 # If you're in China, or you need to change sources, will be set CHANGE_SOURCE to true in .env.
 
@@ -144,20 +144,9 @@ RUN if [ ${INSTALL_SOAP} = true ]; then \
 # Install MongoDB drivers:
 ARG INSTALL_MONGO=false
 RUN if [ ${INSTALL_MONGO} = true ]; then \
-    if [ $(php -r "echo PHP_MAJOR_VERSION;") = "5" ]; then \
-      pecl install mongo; \
-      docker-php-ext-enable mongo; \
-      php -m | grep -oiE '^mongo$'; \
-    else \
-      if [ $(php -r "echo PHP_MAJOR_VERSION;") = "7" ] && { [ $(php -r "echo PHP_MINOR_VERSION;") = "0" ] || [ $(php -r "echo PHP_MINOR_VERSION;") = "1" ] ;}; then \
-        pecl install mongodb-1.9.2; \
-      else \
-        pecl install mongodb; \
-      fi; \
-      docker-php-ext-enable mongodb; \
-      php -m | grep -oiE '^mongodb$'; \
-    fi; \
-  fi
+    pecl install mongodb; \
+    docker-php-ext-enable mongodb; \
+fi
 
 ###########################################################################
 # PHP OCI8:

@@ -12,7 +12,7 @@
 # Note: Base Image name format {image-tag}-{php-version}
 #
 
-ARG LARADOCK_PHP_VERSION=7.4
+ARG LARADOCK_PHP_VERSION
 ARG BASE_IMAGE_TAG_PREFIX=latest
 
 FROM laradock/workspace:${BASE_IMAGE_TAG_PREFIX}-${LARADOCK_PHP_VERSION}
@@ -535,6 +535,7 @@ RUN if [ ${INSTALL_GEARMAN} = true ]; then \
 ARG INSTALL_PHPREDIS=false
 
 RUN if [ ${INSTALL_PHPREDIS} = true ]; then \
+    apt-get update && \
     apt-get install -yqq php${LARADOCK_PHP_VERSION}-redis \
 ;fi
 
@@ -1079,9 +1080,7 @@ RUN set -eux; \
       curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
       curl https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/prod.list > /etc/apt/sources.list.d/mssql-release.list && \
       apt-get update -yqq && \
-#      ACCEPT_EULA=Y apt-get install -yqq msodbcsql17 mssql-tools unixodbc unixodbc-dev libgss3 odbcinst locales && \
-      # Fix "Unable to locate package msodbcsql17" and "Unable to locate package mssql-tools"
-       ACCEPT_EULA=Y apt-get install -yqq msodbcsql18 mssql-tools18 unixodbc unixodbc-dev libgss3 odbcinst locales && \
+      ACCEPT_EULA=Y apt-get install -yqq msodbcsql18 mssql-tools18 unixodbc unixodbc-dev libgss3 odbcinst locales && \
       ln -sfn /opt/mssql-tools/bin/sqlcmd /usr/bin/sqlcmd && \
       ln -sfn /opt/mssql-tools/bin/bcp /usr/bin/bcp && \
       echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
@@ -1547,6 +1546,11 @@ RUN if [ ${INSTALL_PROTOC} = true ]; then \
 ###########################################################################
 # Install fontcustom (for `npm run font` task)
 ###########################################################################
+
+# 3 lines below are needed to be able to install fontforge on ubuntu 20.04
+RUN apt-get install software-properties-common;
+RUN add-apt-repository --remove ppa:fontforge/fontforge;
+RUN apt-get update;
 
 RUN apt-get install -y ruby-dev zlib1g-dev fontforge && \
     git clone https://github.com/bramstein/sfnt2woff-zopfli.git sfnt2woff-zopfli && \
