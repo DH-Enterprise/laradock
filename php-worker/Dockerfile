@@ -300,24 +300,17 @@ RUN if [ ${INSTALL_CASSANDRA} = true ]; then \
 
 # Install Phalcon ext
 ARG INSTALL_PHALCON=false
-ARG PHALCON_VERSION
-ENV PHALCON_VERSION ${PHALCON_VERSION}
+ARG LARADOCK_PHALCON_VERSION
+ENV LARADOCK_PHALCON_VERSION ${LARADOCK_PHALCON_VERSION}
 
 RUN if [ $INSTALL_PHALCON = true ]; then \
-    apk --update add unzip gcc make re2c bash\
-    && git clone https://github.com/jbboehr/php-psr.git \
-    && cd php-psr \
-    && phpize \
-    && ./configure \
-    && make \
-    && make test \
-    && make install \
-    && curl -L -o /tmp/cphalcon.zip https://github.com/phalcon/cphalcon/archive/v${PHALCON_VERSION}.zip \
-    && unzip -d /tmp/ /tmp/cphalcon.zip \
-    && cd /tmp/cphalcon-${PHALCON_VERSION}/build \
-    && ./install \
-    && rm -rf /tmp/cphalcon* \
-;fi
+      apt-get update -yqq \
+      && pecl channel-update pecl.php.net \
+      && apt-get install -yqq libpcre3-dev; \
+      pecl install phalcon-${LARADOCK_PHALCON_VERSION}; \
+      docker-php-ext-enable phalcon; \
+      php -m | grep -q 'phalcon' \
+    ;fi
 
 ARG INSTALL_GHOSTSCRIPT=false
 RUN if [ $INSTALL_GHOSTSCRIPT = true ]; then \
@@ -462,7 +455,17 @@ RUN set -eux; \
   && gpg --verify msodbcsql17_17.8.1.1-1_amd64.sig msodbcsql17_17.8.1.1-1_amd64.apk \
   # Install the package(s)
   && apk add --allow-untrusted msodbcsql17_17.8.1.1-1_amd64.apk unixodbc-dev \
-  && pecl install sqlsrv pdo_sqlsrv \
+  && if [ $(php -r "echo PHP_VERSION_ID - PHP_RELEASE_VERSION;") = "70000" ]; then \
+    pecl install pdo_sqlsrv-5.3.0 sqlsrv-5.3.0 \
+  ;elif [ $(php -r "echo PHP_VERSION_ID - PHP_RELEASE_VERSION;") = "70100" ]; then \
+    pecl install pdo_sqlsrv-5.6.1 sqlsrv-5.6.1 \
+  ;elif [ $(php -r "echo PHP_VERSION_ID - PHP_RELEASE_VERSION;") = "70200" ]; then \
+    pecl install pdo_sqlsrv-5.8.1 sqlsrv-5.8.1 \
+  ;elif [ $(php -r "echo PHP_VERSION_ID - PHP_RELEASE_VERSION;") = "70400" ]; then \
+    pecl install pdo_sqlsrv-5.10.1 sqlsrv-5.10.1 \
+  ;else \
+    pecl install pdo_sqlsrv sqlsrv \
+  ;fi \
   # && echo extension=pdo_sqlsrv.so >> `php --ini | grep "Scan for additional .ini files" | sed -e "s|.*:\s*||"`/10_pdo_sqlsrv.ini
   # && echo extension=sqlsrv.so >> `php --ini | grep "Scan for additional .ini files" | sed -e "s|.*:\s*||"`/00_sqlsrv.ini
   && docker-php-ext-enable pdo_sqlsrv sqlsrv \

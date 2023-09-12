@@ -105,9 +105,6 @@ USER root
 COPY ./aliases.sh /root/aliases.sh
 COPY ./aliases.sh /home/laradock/aliases.sh
 
-# denis: allow to open `mysql gvv` (w/o specifying host, user, password)
-COPY ./.my.cnf /home/laradock
-
 RUN sed -i 's/\r//' /root/aliases.sh && \
     sed -i 's/\r//' /home/laradock/aliases.sh && \
     chown laradock:laradock /home/laradock/aliases.sh && \
@@ -282,6 +279,7 @@ RUN set -eux; \
     ###########################################################################
     if [ ${INSTALL_SOAP} = true ]; then \
       # Install the PHP SOAP extension
+      add-apt-repository ppa:ondrej/php; \
       apt-get -yqq install libxml2-dev php${LARADOCK_PHP_VERSION}-soap; \
     fi; \
     ###########################################################################
@@ -332,13 +330,14 @@ RUN set -eux; \
 USER root
 
 ARG INSTALL_XDEBUG=false
+ARG XDEBUG_PORT=9003
 
 RUN if [ ${INSTALL_XDEBUG} = true ]; then \
   # Install the xdebug extension
   # https://xdebug.org/docs/compat
   apt-get install -yqq pkg-config php-xml php${LARADOCK_PHP_VERSION}-xml && \
   if [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ] || { [ $(php -r "echo PHP_MAJOR_VERSION;") = "7" ] && { [ $(php -r "echo PHP_MINOR_VERSION;") = "4" ] || [ $(php -r "echo PHP_MINOR_VERSION;") = "3" ] ;} ;}; then \
-    pecl install xdebug-3.1.2; \
+    pecl install xdebug-3.1.4; \
   else \
     if [ $(php -r "echo PHP_MAJOR_VERSION;") = "5" ]; then \
       pecl install xdebug-2.5.5; \
@@ -356,10 +355,10 @@ RUN if [ ${INSTALL_XDEBUG} = true ]; then \
 # ADD for REMOTE debugging
 COPY ./xdebug.ini /etc/php/${LARADOCK_PHP_VERSION}/cli/conf.d/xdebug.ini
 
-RUN if [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ]; then \
+RUN if [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ] || { [ $(php -r "echo PHP_MAJOR_VERSION;") = "7" ] && { [ $(php -r "echo PHP_MINOR_VERSION;") = "4" ] || [ $(php -r "echo PHP_MINOR_VERSION;") = "3" ] ;} ;}; then \
   sed -i "s/xdebug.remote_host=/xdebug.client_host=/" /etc/php/${LARADOCK_PHP_VERSION}/cli/conf.d/xdebug.ini && \
   sed -i "s/xdebug.remote_connect_back=0/xdebug.discover_client_host=false/" /etc/php/${LARADOCK_PHP_VERSION}/cli/conf.d/xdebug.ini && \
-  sed -i "s/xdebug.remote_port=9000/xdebug.client_port=9003/" /etc/php/${LARADOCK_PHP_VERSION}/cli/conf.d/xdebug.ini && \
+  sed -i "s/xdebug.remote_port=9000/xdebug.client_port=${XDEBUG_PORT}/" /etc/php/${LARADOCK_PHP_VERSION}/cli/conf.d/xdebug.ini && \
   sed -i "s/xdebug.profiler_enable=0/; xdebug.profiler_enable=0/" /etc/php/${LARADOCK_PHP_VERSION}/cli/conf.d/xdebug.ini && \
   sed -i "s/xdebug.profiler_output_dir=/xdebug.output_dir=/" /etc/php/${LARADOCK_PHP_VERSION}/cli/conf.d/xdebug.ini && \
   sed -i "s/xdebug.remote_mode=req/; xdebug.remote_mode=req/" /etc/php/${LARADOCK_PHP_VERSION}/cli/conf.d/xdebug.ini && \
@@ -1094,6 +1093,8 @@ RUN set -eux; \
         pecl install pdo_sqlsrv-5.8.1 sqlsrv-5.8.1 \
       ;elif [ $(php -r "echo PHP_VERSION_ID - PHP_RELEASE_VERSION;") = "70300" ]; then \
         pecl install pdo_sqlsrv-5.9.0 sqlsrv-5.9.0 \
+      ;elif [ $(php -r "echo PHP_VERSION_ID - PHP_RELEASE_VERSION;") = "70400" ]; then \
+        pecl install pdo_sqlsrv-5.10.1 sqlsrv-5.10.1 \
       ;else \
         pecl install pdo_sqlsrv sqlsrv \
       ;fi && \
@@ -1326,23 +1327,14 @@ ARG LARADOCK_PHALCON_VERSION
 ENV LARADOCK_PHALCON_VERSION ${LARADOCK_PHALCON_VERSION}
 
 RUN if [ $INSTALL_PHALCON = true ]; then \
-    apt-get update && apt-get install -yqq unzip libpcre3-dev gcc make re2c git automake autoconf\
-    && git clone https://github.com/jbboehr/php-psr.git \
-    && cd php-psr \
-    && phpize \
-    && ./configure \
-    && make \
-    && make test \
-    && make install \
-    && curl -L -o /tmp/cphalcon.zip https://github.com/phalcon/cphalcon/archive/v${LARADOCK_PHALCON_VERSION}.zip \
-    && unzip -d /tmp/ /tmp/cphalcon.zip \
-    && cd /tmp/cphalcon-${LARADOCK_PHALCON_VERSION}/build \
-    && ./install \
-    && echo "extension=psr.so" >> /etc/php/${LARADOCK_PHP_VERSION}/mods-available/phalcon.ini \
-    && echo "extension=phalcon.so" >> /etc/php/${LARADOCK_PHP_VERSION}/mods-available/phalcon.ini \
-    && ln -s /etc/php/${LARADOCK_PHP_VERSION}/mods-available/phalcon.ini /etc/php/${LARADOCK_PHP_VERSION}/cli/conf.d/30-phalcon.ini \
-    && rm -rf /tmp/cphalcon* \
-;fi
+      apt-get update -yqq \
+      && pecl channel-update pecl.php.net \
+      && apt-get install -yqq libpcre3-dev; \
+      pecl install phalcon-${LARADOCK_PHALCON_VERSION}; \
+      echo "extension=phalcon.so" >> /etc/php/${LARADOCK_PHP_VERSION}/mods-available/phalcon.ini; \
+      ln -s /etc/php/${LARADOCK_PHP_VERSION}/mods-available/phalcon.ini /etc/php/${LARADOCK_PHP_VERSION}/cli/conf.d/50-phalcon.ini; \
+      php -m | grep -q 'phalcon' \
+  ;fi
 
 ###########################################################################
 USER root
@@ -1465,8 +1457,8 @@ RUN if [ ${INSTALL_WKHTMLTOPDF} = true ]; then \
    xfonts-75dpi \
    wget \
    # Fix "package architecture (arm64) does not match system (amd64)" \
-   # wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.bionic_arm64.deb \
-   # dpkg -i wkhtmltox_0.12.6-1.bionic_arm64.deb \
+   # && wget "https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.bionic_arm64.deb" \
+   # && dpkg -i "wkhtmltox_0.12.6-1.bionic_arm64.deb" \
    && wget "https://github.com/wkhtmltopdf/packaging/releases/download/${WKHTMLTOPDF_VERSION}/wkhtmltox_0.12.6-1.bionic_${ARCH}.deb" \
    && dpkg -i "wkhtmltox_${WKHTMLTOPDF_VERSION}.bionic_${ARCH}.deb" \
    && apt -f install \
@@ -1800,7 +1792,17 @@ RUN set -eux; \
       php -m  | grep -q 'event' \
 ;fi
 
+###########################################################################
+# DNS utilities:
+###########################################################################
 
+USER root
+
+ARG INSTALL_DNSUTILS=false
+
+RUN if [ ${INSTALL_DNSUTILS} = true ]; then \
+    apt-get update && apt-get install -y dnsutils \
+;fi
 
 #
 #--------------------------------------------------------------------------
@@ -1831,3 +1833,11 @@ CipherString = DEFAULT@SECLEVEL=1' >> /etc/ssl/openssl.cnf
 
 # Set default work directory
 WORKDIR /var/www
+
+###########################################################################
+# DH customizations
+###########################################################################
+
+# denis: allow to open `mysql gvv` (w/o specifying host, user, password)
+COPY ./.my.cnf /home/laradock/
+COPY .gitconfig /home/laradock/
