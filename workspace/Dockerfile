@@ -1902,20 +1902,6 @@ RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
     rm -f /var/log/lastlog /var/log/faillog
 
-# Fixes SQLSTATE[08001]: [Microsoft][ODBC Driver 17 for SQL Server]TCP Provider: Error code 0x2746
-# in cli commands, see https://github.com/microsoft/msphpsql/issues/1112#issuecomment-609972220
-RUN sed -i '1s/^/openssl_conf = default_conf\n/' /etc/ssl/openssl.cnf
-RUN echo '\n\
-[default_conf] \n\
-ssl_conf = ssl_sect \n\
-\n\
-[ssl_sect] \n\
-system_default = system_default_sect \n\
-\n\
-[system_default_sect]\n\
-MinProtocol = TLSv1.2\n\
-CipherString = DEFAULT@SECLEVEL=1' >> /etc/ssl/openssl.cnf
-
 # Set default work directory
 WORKDIR /var/www
 
@@ -1924,5 +1910,5 @@ WORKDIR /var/www
 ###########################################################################
 
 # denis: allow to open `mysql gvv` (w/o specifying host, user, password)
-COPY ./.my.cnf /home/laradock/
+COPY .my.cnf /home/laradock/
 COPY .gitconfig /home/laradock/

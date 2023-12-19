@@ -472,8 +472,6 @@ services:
             - ct.test
             - gvv-api.test
             - orion.test
-      extra_hosts:
-        - "host.docker.internal:host-gateway"
 
 ### OpenResty Server #########################################
     openresty:
