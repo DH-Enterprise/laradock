@@ -1534,61 +1534,49 @@ RUN if [ ${INSTALL_WKHTMLTOPDF} = true ]; then \
    && apt -f install \
 ;fi
 
-###########################################################################
-# Mailparse extension:
-###########################################################################
-
-ARG INSTALL_MAILPARSE=false
-
-RUN if [ ${INSTALL_MAILPARSE} = true ]; then \
-    apt-get install -yqq php-mailparse \
-;fi
-
-###########################################################################
-# GNU Parallel:
-###########################################################################
-
 USER root
 
+ARG INSTALL_MAILPARSE=false
 ARG INSTALL_GNU_PARALLEL=false
-
-RUN if [ ${INSTALL_GNU_PARALLEL} = true ]; then \
-  apt-get -yqq install parallel \
-;fi
-
-###########################################################################
-# Bash Git Prompt
-###########################################################################
-
 ARG INSTALL_GIT_PROMPT=false
+ARG INSTALL_XMLRPC=false
+ARG INSTALL_LNAV=false
 
 COPY git-prompt.sh /tmp/git-prompt
 
-RUN if [ ${INSTALL_GIT_PROMPT} = true ]; then \
-    git clone https://github.com/magicmonty/bash-git-prompt.git /root/.bash-git-prompt --depth=1 && \
-    cat /tmp/git-prompt >> /root/.bashrc && \
-    rm /tmp/git-prompt \
-;fi
-
-###########################################################################
-# XMLRPC:
-###########################################################################
-
-ARG INSTALL_XMLRPC=false
-
-RUN if [ ${INSTALL_XMLRPC} = true ]; then \
-    apt-get install -yqq php${LARADOCK_PHP_VERSION}-xmlrpc \
-;fi
-
-###########################################################################
-# Lnav:
-###########################################################################
-
-ARG INSTALL_LNAV=false
-
-RUN if [ ${INSTALL_LNAV} = true ]; then \
-    apt-get install -yqq lnav \
-;fi
+RUN set -eux; \
+  ###########################################################################
+  # Mailparse extension:
+  ###########################################################################
+  if [ ${INSTALL_MAILPARSE} = true ]; then \
+      apt-get install -yqq php-mailparse; \
+  fi; \
+  ###########################################################################
+  # GNU Parallel:
+  ###########################################################################
+  if [ ${INSTALL_GNU_PARALLEL} = true ]; then \
+      apt-get -yqq install parallel; \
+  fi; \
+  ###########################################################################
+  # Bash Git Prompt
+  ####z #######################################################################
+  if [ ${INSTALL_GIT_PROMPT} = true ]; then \
+      git clone https://github.com/magicmonty/bash-git-prompt.git /root/.bash-git-prompt --depth=1 && \
+      cat /tmp/git-prompt >> /root/.bashrc && \
+      rm /tmp/git-prompt; \
+  fi; \
+  ###########################################################################
+  # XMLRPC:
+  ###########################################################################
+  if [ ${INSTALL_XMLRPC} = true ]; then \
+      apt-get install -yqq php${LARADOCK_PHP_VERSION}-xmlrpc; \
+  fi; \
+  ###########################################################################
+  # Lnav:
+  ###########################################################################
+  if [ ${INSTALL_LNAV} = true ]; then \
+      apt-get install -yqq lnav; \
+  fi;
 
 ###########################################################################
 # Protoc:
