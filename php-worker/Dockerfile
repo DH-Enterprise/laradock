@@ -5,9 +5,9 @@
 #
 
 ARG LARADOCK_PHP_VERSION
-# 3.13 because otherwise getting #8 9.687 make: *** [Makefile:192: mysqli.lo] Error 127
+# 3.19 because otherwise getting #8 9.687 make: *** [Makefile:192: mysqli.lo] Error 127
 # https://github.com/docker-library/php/issues/1130#issuecomment-782831134
-FROM php:${LARADOCK_PHP_VERSION}-alpine3.13
+FROM php:${LARADOCK_PHP_VERSION}-alpine3.19
 LABEL maintainer="Mahmoud Zalt <mahmoud@zalt.me>"
 
 ARG LARADOCK_PHP_VERSION
@@ -579,13 +579,6 @@ RUN set -xe; \
     && rm /tmp/ssdb-client-php.tar.gz \
     && docker-php-ext-enable ssdb \
 ;fi
-
-# Install iconv
-RUN docker-php-ext-install iconv
-# Fix iconv(): Wrong charset, conversion from `UTF-8' to `ASCII//TRANSLIT' is not allowed
-# https://github.com/DH-Enterprise/orion-bridge/commit/c123e509f9feb2c5473ecab665bc71570ac86e66#diff-a023c128fb1812aec6a748219fd0dab49cf85b3c48115da62b97299098c6a7f7R265
-RUN apk add --no-cache gnu-libiconv
-ENV LD_PRELOAD /usr/lib/preloadable_libiconv.so
 
 ###########################################################################
 # Intl:
