@@ -1373,6 +1373,11 @@ RUN if [ ${INSTALL_DNSUTILS} = true ]; then \
     apt-get update && apt-get install -y dnsutils \
 ;fi
 
+
+RUN apt-get install -y libssl-dev && \
+  docker-php-ext-configure ftp --with-openssl-dir && \
+  docker-php-ext-install ftp;
+
 ###########################################################################
 # Check PHP version:
 ###########################################################################
