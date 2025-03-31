@@ -462,6 +462,7 @@ services:
             - ct.test
             - gvv-api.test
             - orion.test
+            - supplier-portal.test
         backend:
           aliases:
             - gvv.test
@@ -472,6 +473,7 @@ services:
             - ct.test
             - gvv-api.test
             - orion.test
+            - supplier-portal.test
       extra_hosts:
         - "host.docker.internal:host-gateway"
 
