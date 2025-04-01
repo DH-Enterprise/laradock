@@ -1,3 +1,4 @@
 *.conf
 !gvv.conf
 !gvv-api.conf
+!supplier-portal.conf
