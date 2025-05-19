@@ -1155,6 +1155,7 @@ RUN set -eux; \
 USER root
 
 COPY mc/config.json /root/.mc/config.json
+COPY custom-php.ini /etc/php/8.3/cli/conf.d/custom-php.ini
 
 ARG INSTALL_MC=false
 
