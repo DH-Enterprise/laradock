@@ -385,7 +385,7 @@ RUN if [ ${INSTALL_MONGO} = true ]; then \
         if [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ] && [ $(php -r "echo PHP_MINOR_VERSION;") = "0" ]; then \
             pecl install mongodb-1.20.1; \
         else \
-            pecl install mongodb; \
+            pecl install mongodb-1.19.2; \
         fi; \
       fi; \
       docker-php-ext-enable mongodb; \
@@ -1392,7 +1392,7 @@ RUN if [ ${INSTALL_DNSUTILS} = true ]; then \
 
 
 RUN apt-get install -y libssl-dev && \
-  docker-php-ext-configure ftp --with-openssl-dir && \
+  docker-php-ext-configure ftp --with-ftp-ssl && \
   docker-php-ext-install ftp;
 
 ###########################################################################
