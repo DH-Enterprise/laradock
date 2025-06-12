@@ -117,25 +117,29 @@ ARG IMAGEMAGICK_VERSION=latest
 ENV IMAGEMAGICK_VERSION ${IMAGEMAGICK_VERSION}
 RUN set -eux; \
   if [ ${INSTALL_IMAGEMAGICK} = true ]; then \
-    apk add --update --no-cache imagemagick-dev imagemagick; \
-    if [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ]; then \
-      cd /tmp && \
-      if [ ${IMAGEMAGICK_VERSION} = "latest" ]; then \
-        git clone https://github.com/Imagick/imagick; \
-      else \
-        git clone --branch ${IMAGEMAGICK_VERSION} https://github.com/Imagick/imagick; \
-      fi && \
-      cd imagick && \
-      phpize && \
-      ./configure && \
-      make && \
-      make install && \
-      rm -r /tmp/imagick; \
+  apk add --update --no-cache imagemagick-dev imagemagick; \
+  if [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ]; then \
+  cd /tmp && \
+  if [ ${IMAGEMAGICK_VERSION} = "latest" ]; then \
+    if [ ${LARADOCK_PHP_VERSION} = "8.4" ]; then \
+      git clone --branch develop https://github.com/Imagick/imagick; \
     else \
-      pecl install imagick; \
-    fi && \
-    docker-php-ext-enable imagick; \
-    php -m | grep -q 'imagick'; \
+      git clone https://github.com/Imagick/imagick; \
+    fi; \
+  else \
+  git clone --branch ${IMAGEMAGICK_VERSION} https://github.com/Imagick/imagick; \
+  fi && \
+  cd imagick && \
+  phpize && \
+  ./configure && \
+  make && \
+  make install && \
+  rm -r /tmp/imagick; \
+  else \
+  pecl install imagick; \
+  fi && \
+  docker-php-ext-enable imagick; \
+  php -m | grep -q 'imagick'; \
   fi
 
 #Install GMP package:
@@ -165,14 +169,22 @@ RUN if [ ${INSTALL_MONGO} = true ]; then \
       docker-php-ext-enable mongo; \
       php -m | grep -oiE '^mongo$'; \
     else \
-      if [ $(php -r "echo PHP_MAJOR_VERSION;") = "7" ] && [ $(php -r "echo PHP_MINOR_VERSION;") != "4" ]; then \
+      if [ $(php -r "echo PHP_MAJOR_VERSION;") = "7" ]; then \
         if [ $(php -r "echo PHP_MINOR_VERSION;") = "0" ] || [ $(php -r "echo PHP_MINOR_VERSION;") = "1" ]; then \
           pecl install mongodb-1.9.2; \
         else \
-          pecl install mongodb-1.16.2; \
+          if [ $(php -r "echo PHP_MINOR_VERSION;") = "4" ]; then \
+            pecl install mongodb-1.20.1; \
+          else \
+            pecl install mongodb-1.16.2; \
+          fi; \
         fi; \
       else \
-        pecl install mongodb; \
+        if [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ] && [ $(php -r "echo PHP_MINOR_VERSION;") = "0" ]; then \
+            pecl install mongodb-1.20.1; \
+        else \
+            pecl install mongodb; \
+        fi; \
       fi; \
       docker-php-ext-enable mongodb; \
       php -m | grep -oiE '^mongodb$'; \
@@ -244,8 +256,9 @@ RUN set -eux; \
 # Install MySQL Client:
 ARG INSTALL_MYSQL_CLIENT=false
 RUN if [ ${INSTALL_MYSQL_CLIENT} = true ]; then \
-      apk --update add mysql-client \
-;fi
+  apk --update add mysql-client \
+  mariadb-connector-c \
+  ;fi
 
 # Install FFMPEG:
 ARG INSTALL_FFMPEG=false
@@ -349,11 +362,11 @@ ARG INSTALL_PHALCON=false
 ARG LARADOCK_PHALCON_VERSION
 ENV LARADOCK_PHALCON_VERSION ${LARADOCK_PHALCON_VERSION}
 
-RUN if [ $INSTALL_PHALCON = true ]; then \
-      apt-get update -yqq \
+RUN if [ "$INSTALL_PHALCON" = true ]; then \
+      apk update \
       && pecl channel-update pecl.php.net \
-      && apt-get install -yqq libpcre3-dev; \
-      pecl install phalcon-${LARADOCK_PHALCON_VERSION}; \
+      && apk add --no-cache libpcre32 \
+      && pecl install phalcon-${LARADOCK_PHALCON_VERSION}; \
       docker-php-ext-enable phalcon; \
       php -m | grep -q 'phalcon' \
     ;fi
@@ -378,15 +391,19 @@ RUN if [ $INSTALL_GHOSTSCRIPT = true ]; then \
 # Install Redis package:
 ARG INSTALL_REDIS=false
 RUN if [ ${INSTALL_REDIS} = true ]; then \
-    # Install Redis Extension
-    if [ $(php -r "echo PHP_MAJOR_VERSION;") = "5" ]; then \
-      printf "\n" | pecl install -o -f redis-4.3.0; \
-    else \
-      printf "\n" | pecl install -o -f redis; \
-    fi; \
-    rm -rf /tmp/pear; \
-    docker-php-ext-enable redis \
-;fi
+  # Install Redis Extension
+  if [ $(php -r "echo PHP_MAJOR_VERSION;") = "5" ]; then \
+  printf "\n" | pecl install -o -f redis-4.3.0; \
+  elif [ $(php -r "echo PHP_MAJOR_VERSION;") = "7" ] && { [ $(php -r "echo PHP_MINOR_VERSION;") = "0" ] || [ $(php -r "echo PHP_MINOR_VERSION;") = "1" ] ;}; then \
+  printf "\n" | pecl install -o -f redis-5.3.7; \
+  elif [ $(php -r "echo PHP_MAJOR_VERSION;") = "7" ] && { [ $(php -r "echo PHP_MINOR_VERSION;") = "2" ] || [ $(php -r "echo PHP_MINOR_VERSION;") = "3" ] ;}; then \
+  printf "\n" | pecl install -o -f redis-6.0.2; \
+  else \
+  printf "\n" | pecl install -o -f redis; \
+  fi; \
+  rm -rf /tmp/pear; \
+  docker-php-ext-enable redis \
+  ;fi
 
 ###########################################################################
 # Swoole EXTENSION
@@ -404,6 +421,8 @@ RUN if [ ${INSTALL_SWOOLE} = true ]; then \
       pecl install swoole-4.5.11; \
     elif [ $(php -r "echo PHP_MAJOR_VERSION;") = "7" ]; then \
       pecl install swoole-4.8.12; \
+    elif [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ] && [ $(php -r "echo PHP_MINOR_VERSION;") = "0" ]; then \
+      pecl install swoole-5.1.2; \
     else \
       echo '' | pecl -q install swoole; \
     fi; \
@@ -528,7 +547,7 @@ RUN set -eux; \
   # Install the package(s)
   && apk add --allow-untrusted msodbcsql18_18.3.2.1-1_amd64.apk unixodbc-dev \
   ;fi \
-  # 
+  #
   && if [ $(php -r "echo PHP_VERSION_ID - PHP_RELEASE_VERSION;") = "70000" ]; then \
     pecl install pdo_sqlsrv-5.3.0 sqlsrv-5.3.0 \
   ;elif [ $(php -r "echo PHP_VERSION_ID - PHP_RELEASE_VERSION;") = "70100" ]; then \
@@ -539,6 +558,8 @@ RUN set -eux; \
     pecl install pdo_sqlsrv-5.9.0 sqlsrv-5.9.0 \
   ;elif [ $(php -r "echo PHP_VERSION_ID - PHP_RELEASE_VERSION;") = "70400" ]; then \
     pecl install pdo_sqlsrv-5.10.1 sqlsrv-5.10.1 \
+  ;elif [ $(php -r "echo PHP_VERSION_ID - PHP_RELEASE_VERSION;") = "80000" ]; then \
+    pecl install pdo_sqlsrv-5.11.1 sqlsrv-5.11.1 \
   ;else \
     pecl install pdo_sqlsrv sqlsrv \
   ;fi \
@@ -652,6 +673,17 @@ COPY ./laravel.ini /usr/local/etc/php/conf.d
 # Check PHP version
 #--------------------------------------------------------------------------
 #
+
+###########################################################################
+# Set Timezone
+###########################################################################
+
+ARG TZ=UTC
+ENV TZ ${TZ}
+
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+###########################################################################
 
 RUN php -v | head -n 1 | grep -q "PHP ${PHP_VERSION}."
 
