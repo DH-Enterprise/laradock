@@ -76,6 +76,7 @@ alias pest="./vendor/bin/pest"
 alias phpstan="./vendor/bin/phpstan"
 alias php-cs-fixer="./vendor/bin/php-cs-fixer"
 
+# TODO https://github.com/laradock/laradock/issues/105
 alias phpunit="./vendor/bin/phpunit"
 alias pu="phpunit"
 alias puf="phpunit --filter"
@@ -164,3 +165,10 @@ function _artisan()
 }
 complete -F _artisan art
 complete -F _artisan artisan
+
+get_git_branch() {
+     git rev-parse --abbrev-ref HEAD 2> /dev/null
+}
+
+# denis: included git branch, full path
+export PS1="\u@\h \[\033[32m\]\w\[\033[33m\] \$(get_git_branch)\[\033[00m\] $ "
