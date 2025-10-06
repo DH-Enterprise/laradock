@@ -159,6 +159,7 @@ ARG INSTALL_SOAP=false
 
 RUN if [ ${INSTALL_SOAP} = true ]; then \
     # Install the soap extension
+    apt-get update && \
     rm /etc/apt/preferences.d/no-debian-php && \
     apt-get -y install libxml2-dev php-soap && \
     docker-php-ext-install soap \
@@ -384,7 +385,7 @@ RUN if [ ${INSTALL_MONGO} = true ]; then \
         if [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ] && [ $(php -r "echo PHP_MINOR_VERSION;") = "0" ]; then \
             pecl install mongodb-1.20.1; \
         else \
-            pecl install mongodb; \
+            pecl install mongodb-1.21.0; \
         fi; \
       fi; \
       docker-php-ext-enable mongodb; \
@@ -1312,10 +1313,24 @@ RUN if [ ${DOWNGRADE_OPENSSL_TLS_AND_SECLEVEL} = true ]; then \
 ;fi
 
 ###########################################################################
-# zmq
+# PHP gettext:
 ###########################################################################
 
 USER root
+
+RUN docker-php-ext-install gettext
+
+###########################################################################
+# Git (for proper display info on "Be right back" page):
+###########################################################################
+
+USER root
+
+RUN apt-get install -yqq git
+
+###########################################################################
+# zmq
+###########################################################################
 
 ARG INSTALL_ZMQ=false
 
@@ -1331,7 +1346,6 @@ RUN if [ ${INSTALL_ZMQ} = true ]; then \
     && rm -fr php-zmq \
     && echo "extension=zmq.so" > /usr/local/etc/php/conf.d/zmq.ini \
 ;fi
-
 
 ############################################################################
 ## Event:
@@ -1376,6 +1390,11 @@ RUN if [ ${INSTALL_DNSUTILS} = true ]; then \
     apt-get update && apt-get install -y dnsutils \
 ;fi
 
+
+RUN apt-get install -y libssl-dev && \
+  docker-php-ext-configure ftp --with-ftp-ssl && \
+  docker-php-ext-install ftp;
+
 ###########################################################################
 # Check PHP version:
 ###########################################################################
@@ -1412,6 +1431,8 @@ RUN groupmod -o -g ${PGID} www-data && \
 RUN if [ ${INSTALL_FAKETIME} = true ]; then \
     echo "/usr/lib/x86_64-linux-gnu/faketime/libfaketime.so.1" > /etc/ld.so.preload \
 ;fi
+
+RUN ["ln", "-sf", "/usr/local/bin/php", "/usr/bin/php"]
 
 # Configure locale.
 ARG LOCALE=POSIX

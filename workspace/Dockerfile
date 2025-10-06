@@ -14,6 +14,7 @@
 
 ARG LARADOCK_PHP_VERSION
 ARG BASE_IMAGE_TAG_PREFIX=latest
+
 FROM laradock/workspace:${BASE_IMAGE_TAG_PREFIX}-${LARADOCK_PHP_VERSION}
 
 LABEL maintainer="Mahmoud Zalt <mahmoud@zalt.me>"
@@ -82,6 +83,7 @@ RUN set -xe; \
       #
       # next lines are here because there is no auto build on dockerhub see https://github.com/laradock/laradock/pull/1903#issuecomment-463142846
       libzip-dev zip unzip \
+      wget \
       # Install the zip extension
       php${LARADOCK_PHP_VERSION}-zip \
       # nasm
@@ -301,6 +303,7 @@ RUN set -eux; \
     ###########################################################################
     if [ ${INSTALL_SOAP} = true ]; then \
       # Install the PHP SOAP extension
+      add-apt-repository ppa:ondrej/php; \
       apt-get -yqq install libxml2-dev php${LARADOCK_PHP_VERSION}-soap; \
     fi; \
     ###########################################################################
@@ -498,7 +501,7 @@ RUN if [ ${INSTALL_MONGO} = true ]; then \
         if [ $(php -r "echo PHP_MAJOR_VERSION;") = "8" ] && [ $(php -r "echo PHP_MINOR_VERSION;") = "0" ]; then \
             pecl install mongodb-1.20.1; \
         else \
-            pecl install mongodb; \
+            pecl install mongodb-1.21.0; \
         fi; \
       fi; \
       echo "extension=mongodb.so" >> /etc/php/${LARADOCK_PHP_VERSION}/mods-available/mongodb.ini; \
@@ -1180,6 +1183,7 @@ RUN set -eux; \
 USER root
 
 COPY mc/config.json /root/.mc/config.json
+COPY custom-php.ini /etc/php/8.3/cli/conf.d/custom-php.ini
 
 ARG INSTALL_MC=false
 
@@ -1563,61 +1567,49 @@ RUN if [ ${INSTALL_WKHTMLTOPDF} = true ]; then \
    && apt -f install \
 ;fi
 
-###########################################################################
-# Mailparse extension:
-###########################################################################
-
-ARG INSTALL_MAILPARSE=false
-
-RUN if [ ${INSTALL_MAILPARSE} = true ]; then \
-    apt-get install -yqq php-mailparse \
-;fi
-
-###########################################################################
-# GNU Parallel:
-###########################################################################
-
 USER root
 
+ARG INSTALL_MAILPARSE=false
 ARG INSTALL_GNU_PARALLEL=false
-
-RUN if [ ${INSTALL_GNU_PARALLEL} = true ]; then \
-  apt-get -yqq install parallel \
-;fi
-
-###########################################################################
-# Bash Git Prompt
-###########################################################################
-
 ARG INSTALL_GIT_PROMPT=false
+ARG INSTALL_XMLRPC=false
+ARG INSTALL_LNAV=false
 
 COPY git-prompt.sh /tmp/git-prompt
 
-RUN if [ ${INSTALL_GIT_PROMPT} = true ]; then \
-    git clone https://github.com/magicmonty/bash-git-prompt.git /root/.bash-git-prompt --depth=1 && \
-    cat /tmp/git-prompt >> /root/.bashrc && \
-    rm /tmp/git-prompt \
-;fi
-
-###########################################################################
-# XMLRPC:
-###########################################################################
-
-ARG INSTALL_XMLRPC=false
-
-RUN if [ ${INSTALL_XMLRPC} = true ]; then \
-    apt-get install -yqq php${LARADOCK_PHP_VERSION}-xmlrpc \
-;fi
-
-###########################################################################
-# Lnav:
-###########################################################################
-
-ARG INSTALL_LNAV=false
-
-RUN if [ ${INSTALL_LNAV} = true ]; then \
-    apt-get install -yqq lnav \
-;fi
+RUN set -eux; \
+  ###########################################################################
+  # Mailparse extension:
+  ###########################################################################
+  if [ ${INSTALL_MAILPARSE} = true ]; then \
+      apt-get install -yqq php-mailparse; \
+  fi; \
+  ###########################################################################
+  # GNU Parallel:
+  ###########################################################################
+  if [ ${INSTALL_GNU_PARALLEL} = true ]; then \
+      apt-get -yqq install parallel; \
+  fi; \
+  ###########################################################################
+  # Bash Git Prompt
+  ####z #######################################################################
+  if [ ${INSTALL_GIT_PROMPT} = true ]; then \
+      git clone https://github.com/magicmonty/bash-git-prompt.git /root/.bash-git-prompt --depth=1 && \
+      cat /tmp/git-prompt >> /root/.bashrc && \
+      rm /tmp/git-prompt; \
+  fi; \
+  ###########################################################################
+  # XMLRPC:
+  ###########################################################################
+  if [ ${INSTALL_XMLRPC} = true ]; then \
+      apt-get install -yqq php${LARADOCK_PHP_VERSION}-xmlrpc; \
+  fi; \
+  ###########################################################################
+  # Lnav:
+  ###########################################################################
+  if [ ${INSTALL_LNAV} = true ]; then \
+      apt-get install -yqq lnav; \
+  fi;
 
 ###########################################################################
 # Protoc:
@@ -1641,6 +1633,24 @@ RUN if [ ${INSTALL_PROTOC} = true ]; then \
   rm -f ${PROTOC_ZIP} && \
   chmod +x /usr/local/bin/protoc && \
   chmod -R +r /usr/local/include/google \
+;fi
+
+###########################################################################
+# Install fontcustom (for `npm run font` task)
+###########################################################################
+
+ARG INSTALL_FONTFORGE=false
+RUN if [ ${INSTALL_FONTFORGE} = true ]; then \
+    apt-get install software-properties-common && \
+    add-apt-repository --remove ppa:fontforge/fontforge && \
+    apt-get update && \
+    apt-get install -y ruby-dev zlib1g-dev fontforge && \
+        git clone https://github.com/bramstein/sfnt2woff-zopfli.git sfnt2woff-zopfli && \
+        cd sfnt2woff-zopfli && make && mv sfnt2woff-zopfli /usr/local/bin/sfnt2woff && \
+        git clone --recursive https://github.com/google/woff2.git && cd woff2 && \
+        make clean all && mv woff2_compress /usr/local/bin/ && \
+        mv woff2_decompress /usr/local/bin/ && \
+        gem install fontcustom \
 ;fi
 
 ###########################################################################
@@ -1727,6 +1737,8 @@ RUN if [ ${SHELL_OH_MY_ZSH} = true ]; then \
 
 USER root
 
+# Keep the last version of Composer
+RUN composer self-update --2
 
 ###########################################################################
 # PHP DECIMAL:
@@ -1928,3 +1940,11 @@ RUN apt-get clean && \
 
 # Set default work directory
 WORKDIR /var/www
+
+###########################################################################
+# DH customizations
+###########################################################################
+
+# denis: allow to open `mysql gvv` (w/o specifying host, user, password)
+COPY ./.my.cnf /home/laradock/
+COPY .gitconfig /home/laradock/
