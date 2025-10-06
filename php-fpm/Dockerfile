@@ -1392,7 +1392,7 @@ RUN if [ ${INSTALL_DNSUTILS} = true ]; then \
 
 
 RUN apt-get install -y libssl-dev && \
-  docker-php-ext-configure ftp --with-openssl-dir && \
+  docker-php-ext-configure ftp --with-ftp-ssl && \
   docker-php-ext-install ftp;
 
 ###########################################################################
