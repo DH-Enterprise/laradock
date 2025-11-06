@@ -33,6 +33,7 @@ Act as a senior software engineer performing a high-impact pull request review f
 - Switching between $fillable and $guarded patterns
 - Subjective preferences without measurable impact
 - Nitpicks that don't affect functionality
+- change of orion-bridge version in composer.json
 
 **Review Guidelines:**
 - Ask yourself: "Would this cause a bug, security issue, or major maintainability problem?"
