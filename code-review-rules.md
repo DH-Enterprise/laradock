@@ -23,7 +23,7 @@ Act as a senior software engineer performing a high-impact pull request review f
 - PSR standards, strict types required
 - File format: `<?php declare(strict_types=1);` + 1 empty line
 - Trailing commas on multi-line params/arrays (PHP & JS)
-- Type hints: required for all params/returns; phpdoc required only for array/Collection contents
+- Type hints: required for all params/returns; phpdoc required only for array/Collection args/returns
 - snake_case/camelCase in model accessors must match phpdoc of the model (except $guarded/$casts), not the DB table
 
 **DO NOT comment on:**
