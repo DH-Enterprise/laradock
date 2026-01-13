@@ -46,4 +46,4 @@ Act as a senior software engineer performing a high-impact pull request review f
 - **Remember: trailing commas in PHP 7.3+ and modern JavaScript are valid syntax and prevent future diff noise**
 
 **Team Agreements: Known agreements that should not be raised during code review**
-- Repository Pattern Enforcement: for all files that are NOT *Repository.php - all interactions with storage (e.g., SQL queries, `find()`, `findOrFail()`, `where()`, `query()`, etc.) must be extracted to the repository layer. Instead of `$orderModel->save();`, use `app(OrderRepoInterface::class)->save($orderModel);`.
+- Repository Pattern Enforcement: only Repository classes (*Repository.php files) are allowed to do any interactions with storage (e.g., SQL queries, `find()`, `findOrFail()`, `where()`, `query()`, `delete()`, `save()`, etc). All other places must extract storage-related operations to the repository layer. Instead of `$orderModel->save();`, use `app(OrderRepoInterface::class)->save($orderModel);`.
