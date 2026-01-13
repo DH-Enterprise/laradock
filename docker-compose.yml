@@ -399,6 +399,7 @@ services:
         - "dockerhost:${DOCKER_HOST_IP}"
       networks:
         - backend
+
 ### Laravel Horizon ############################################
     laravel-horizon:
       restart: always
@@ -478,10 +479,32 @@ services:
       depends_on:
         - php-fpm
       networks:
-        - frontend
-        - backend
+        frontend:
+          aliases:
+            - gvv.test
+            - gvv-ca.test
+            - gvh.test
+            - sceptre.test
+            - aer.test
+            - ct.test
+            - gvv-api.test
+            - orion.test
+            - supplier-portal.test
+            - group-itinerary.test
+        backend:
+          aliases:
+            - gvv.test
+            - gvv-ca.test
+            - gvh.test
+            - sceptre.test
+            - aer.test
+            - ct.test
+            - gvv-api.test
+            - orion.test
+            - supplier-portal.test
+            - group-itinerary.test
       extra_hosts:
-        - "host.docker.internal:host-gateway"  
+        - "host.docker.internal:host-gateway"
 
 ### OpenResty Server #########################################
     openresty:
@@ -628,7 +651,7 @@ services:
         - SA_PASSWORD=${MSSQL_PASSWORD}
         - ACCEPT_EULA=Y
       volumes:
-        - mssql:/var/opt/mssql
+        - ${DATA_PATH_HOST}/mssql:/var/lib/mssql
       ports:
         - "${MSSQL_PORT}:1433"
       networks:
@@ -645,7 +668,7 @@ services:
           - no_proxy
           - MARIADB_VERSION=${MARIADB_VERSION}
       volumes:
-        - ${DATA_PATH_HOST}/mariadb:/var/lib/mysql
+        - ${DATA_PATH_HOST}/mariadb1:/var/lib/mysql
         - ${MARIADB_ENTRYPOINT_INITDB}:/docker-entrypoint-initdb.d
       ports:
         - "${MARIADB_PORT}:3306"
@@ -657,6 +680,7 @@ services:
         - MYSQL_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}
       networks:
         - backend
+
 
 ### PostgreSQL ###########################################
     postgres:
@@ -824,6 +848,7 @@ services:
         - "${REDIS_PORT}:6379"
       networks:
         - backend
+
 
 ### Redis Cluster ##########################################
     redis-cluster:
@@ -1129,14 +1154,14 @@ services:
       volumes:
         - elasticsearch:/usr/share/elasticsearch/data
       environment:
-        - cluster.name=laradock-cluster
         - node.name=laradock-node
+        - cluster.name=gvv-cluster
+        - cluster.initial_master_nodes=laradock-node
         - bootstrap.memory_lock=true
         - xpack.security.enabled=false
         - xpack.security.transport.ssl.enabled=false
         - indices.id_field_data.enabled=true
         - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-        - cluster.initial_master_nodes=laradock-node
       ulimits:
         memlock:
           soft: -1
@@ -2226,7 +2251,7 @@ services:
         - frontend
         - backend
       restart: always
-  
+
   ### keycloak ##################################################
     keycloak:
       image: bitnami/keycloak:${KEYCLOAK_VERSION}
