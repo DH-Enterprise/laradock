@@ -1,0 +1,28 @@
+[safe]
+    directory = *
+
+[alias]
+	st = status
+	ci = commit
+	cia = !git commit --amend && git st
+	co = checkout
+	br = branch
+	bra = "!git branch -a --color --sort=-committerdate | perl -e 'print reverse <>'"
+	bra2 = "!git for-each-ref --sort=committerdate refs/heads/ --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(color:red)%(objectname:short)%(color:reset) - %(contents:subject) - %(authorname) (%(color:green)%(committerdate:relative)%(color:reset))'"
+	chp = cherry-pick
+	pr = pull --rebase --autostash
+	in = "!git remote update -p; git log ..@{u}"
+	out = log @{u}..
+	up = !(git add . && git stash && git pull --rebase >&2) | grep -v 'No local changes to save' && git stash pop
+	rhh = "!read -p 'Are you sure to reset changes? (Ctrl+C if not): ' input && git reset --hard HEAD && git status"
+	rhh1 = "!read -p 'Are you sure to uncommit 1 hardly? (Ctrl+C if not): ' input && git reset --hard HEAD~1 && git status"
+	rhh2 = "!read -p 'Are you sure to uncommit 2 hardly? (Ctrl+C if not): ' input && git reset --hard HEAD~2 && git status"
+	rsh1 = "!read -p 'Are you sure to uncommit 1 softly? (Ctrl+C if not): ' input && git reset --soft HEAD~1 && git status"
+	who = shortlog -nse --no-merges
+	rei = rebase -i @{u}
+	lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+	it = !git init && git commit -m "root" --allow-empty
+	grog = log --graph --abbrev-commit --decorate --all --format=format:\"%C(bold blue)%h%C(reset) - %C(bold cyan)%aD%C(dim white) - %an%C(reset) %C(bold green)(%ar)%C(reset)%C(bold yellow)%d%C(reset)%n %C(white)%s%C(reset)\"
+	local-branches = !git branch -vv | cut -c 3- | awk '$3 !~/\\[/ { print $1 }'
+	# https://www.erikschierboom.com/2020/02/17/cleaning-up-local-git-branches-deleted-on-a-remote/
+	gone = ! "git fetch -p && git for-each-ref --format '%(refname:short) %(upstream:track)' | awk '$2 == \"[gone]\" {print $1}'"
